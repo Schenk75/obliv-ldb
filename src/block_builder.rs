@@ -28,7 +28,7 @@ impl BlockBuilder {
         BlockBuilder {
             buffer: Vec::with_capacity(o.block_size),
             opt: o,
-            restarts: restarts,
+            restarts,
             last_key: Vec::new(),
             restart_counter: 0,
             counter: 0,
@@ -119,6 +119,10 @@ impl BlockBuilder {
 
         // done
         self.buffer
+    }
+
+    pub fn get_restart_counter(&self) -> usize {
+        self.restart_counter
     }
 }
 
