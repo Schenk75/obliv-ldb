@@ -38,6 +38,7 @@ extern crate sgx_tstd as std;
 extern crate sgx_tunittest;
 
 extern crate rand;
+extern crate integer_encoding;
 extern crate rusty_leveldb;
 
 use sgx_tunittest::*;
@@ -47,7 +48,14 @@ use std::slice;
 use std::string::String;
 use std::vec::Vec;
 
+mod test_env;
+mod test_types;
+mod test_key_types;
+mod test_cmp;
+mod test_test_util;
 mod test_block;
+mod test_cache;
+
 
 #[no_mangle]
 pub extern "C" fn test_something(some_string: *const u8, some_len: usize) -> sgx_status_t {
@@ -55,17 +63,50 @@ pub extern "C" fn test_something(some_string: *const u8, some_len: usize) -> sgx
     let _ = io::stdout().write(str_slice);
 
     rsgx_unit_tests!(
-        test_block::test_block_builder_sanity,
-        test_block::test_block_builder_reset,
-        // test_block::test_block_builder_panics,
-        test_block::test_block_iterator_properties,
-        test_block::test_block_empty,
-        test_block::test_block_build_iterate,
-        test_block::test_block_iterate_reverse,
-        test_block::test_block_seek,
-        test_block::test_block_seek_to_last,
-        test_block::test_blockhandle,
+        // test_env::test_mem_fs_memfile_read,
+        // test_env::test_mem_fs_memfile_write,
+        // test_env::test_mem_fs_memfile_readat,
+        // test_env::test_mem_fs_open_read_write,
+        // test_env::test_mem_fs_open_read_write_append_truncate,
+        // test_env::test_mem_fs_metadata_operations,
+        // test_env::test_mem_fs_children,
+        // test_env::test_mem_fs_lock,
+        // test_env::test_memenv_all,
+        // test_env::test_files,
+        // test_env::test_locking,
+        // test_env::test_dirs,
 
+        // test_types::test_types_parse_file_name,
+
+        // test_key_types::test_memtable_lookupkey,
+        // test_key_types::test_build_memtable_key,
+
+        // test_cmp::test_cmp_defaultcmp_shortest_sep,
+        // test_cmp::test_cmp_defaultcmp_short_succ,
+        // test_cmp::test_cmp_internalkeycmp_shortest_sep,
+        // test_cmp::test_cmp_internalkeycmp,
+        // // test_cmp::test_cmp_memtablekeycmp_panics,
+
+        // test_test_util::test_test_util_basic,
+
+        // test_block::test_block_builder_sanity,
+        // test_block::test_block_builder_reset,
+        // // test_block::test_block_builder_panics,
+        // test_block::test_block_iterator_properties,
+        // test_block::test_block_empty,
+        // test_block::test_block_build_iterate,
+        // test_block::test_block_iterate_reverse,
+        // test_block::test_block_seek,
+        // test_block::test_block_seek_to_last,
+        // test_block::test_blockhandle,
+
+        test_cache::test_blockcache_cache_add_rm,
+        test_cache::test_blockcache_cache_capacity,
+        test_cache::test_blockcache_lru_remove,
+        test_cache::test_blockcache_lru_1,
+        test_cache::test_blockcache_lru_reinsert,
+        test_cache::test_blockcache_lru_reinsert_2,
+        test_cache::test_blockcache_lru_edge_cases,
     );
     sgx_status_t::SGX_SUCCESS
 }

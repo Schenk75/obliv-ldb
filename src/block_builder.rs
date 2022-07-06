@@ -55,6 +55,7 @@ impl BlockBuilder {
         self.counter = 0;
     }
 
+    // push a key which is Greater than last_key after last_key
     pub fn add(&mut self, key: &[u8], val: &[u8]) {
         assert!(self.restart_counter <= self.opt.block_restart_interval);
         assert!(
@@ -121,6 +122,7 @@ impl BlockBuilder {
         self.buffer
     }
 
+    // for test
     pub fn get_restart_counter(&self) -> usize {
         self.restart_counter
     }

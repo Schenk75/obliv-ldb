@@ -37,6 +37,7 @@ cfg_if! {
         extern crate sgx_trts;
         extern crate sgx_types;
         extern crate protected_fs;
+        extern crate sgx_tunittest;
     } else {
         extern crate libc;
     }
@@ -57,7 +58,7 @@ pub mod blockhandle;
 pub mod cache;
 pub mod cmp;
 pub mod disk_env;
-mod env;
+pub mod env;
 mod env_common;
 mod error;
 pub mod filter;

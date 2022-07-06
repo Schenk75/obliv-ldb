@@ -42,19 +42,19 @@ impl RandomAccess for BufferBackedFile {
 /// A MemFile holds a shared, concurrency-safe buffer. It can be shared among several
 /// MemFileReaders and MemFileWriters, each with an independent offset.
 #[derive(Clone)]
-pub struct MemFile(Arc<Mutex<BufferBackedFile>>);
+pub struct MemFile(pub Arc<Mutex<BufferBackedFile>>);
 
 impl MemFile {
-    fn new() -> MemFile {
+    pub fn new() -> MemFile {
         MemFile(Arc::new(Mutex::new(Vec::new())))
     }
 }
 
 /// A MemFileReader holds a reference to a MemFile and a read offset.
-struct MemFileReader(MemFile, usize);
+pub struct MemFileReader(pub MemFile, pub usize);
 
 impl MemFileReader {
-    fn new(f: MemFile, from: usize) -> MemFileReader {
+    pub fn new(f: MemFile, from: usize) -> MemFileReader {
         MemFileReader(f, from)
     }
 }
@@ -83,10 +83,10 @@ impl Read for MemFileReader {
 }
 
 /// A MemFileWriter holds a reference to a MemFile and a write offset.
-struct MemFileWriter(MemFile, usize);
+pub struct MemFileWriter(pub MemFile, pub usize);
 
 impl MemFileWriter {
-    fn new(f: MemFile, append: bool) -> MemFileWriter {
+    pub fn new(f: MemFile, append: bool) -> MemFileWriter {
         let len = f.0.lock().unwrap().len();
         MemFileWriter(f, if append { len } else { 0 })
     }
@@ -138,7 +138,7 @@ pub struct MemFS {
 }
 
 impl MemFS {
-    fn new() -> MemFS {
+    pub fn new() -> MemFS {
         MemFS {
             store: Arc::new(Mutex::new(HashMap::new())),
         }
@@ -146,7 +146,7 @@ impl MemFS {
 
     /// Open a file. The caller can use the MemFile either inside a MemFileReader or as
     /// RandomAccess.
-    fn open(&self, p: &Path, create: bool) -> Result<MemFile> {
+    pub fn open(&self, p: &Path, create: bool) -> Result<MemFile> {
         let mut fs = self.store.lock().unwrap();
         match fs.entry(path_to_string(p)) {
             Entry::Occupied(o) => Ok(o.get().f.clone()),
@@ -167,18 +167,18 @@ impl MemFS {
         }
     }
     /// Open a file for writing.
-    fn open_w(&self, p: &Path, append: bool, truncate: bool) -> Result<Box<dyn Write>> {
+    pub fn open_w(&self, p: &Path, append: bool, truncate: bool) -> Result<Box<dyn Write>> {
         let f = self.open(p, true)?;
         if truncate {
             f.0.lock().unwrap().clear();
         }
         Ok(Box::new(MemFileWriter::new(f, append)))
     }
-    fn exists_(&self, p: &Path) -> Result<bool> {
+    pub fn exists_(&self, p: &Path) -> Result<bool> {
         let fs = self.store.lock()?;
         Ok(fs.contains_key(path_to_str(p)))
     }
-    fn children_of(&self, p: &Path) -> Result<Vec<PathBuf>> {
+    pub fn children_of(&self, p: &Path) -> Result<Vec<PathBuf>> {
         let fs = self.store.lock()?;
         let mut prefix = path_to_string(p);
         if !prefix.ends_with("/") {
@@ -192,7 +192,7 @@ impl MemFS {
         }
         Ok(children)
     }
-    fn size_of_(&self, p: &Path) -> Result<usize> {
+    pub fn size_of_(&self, p: &Path) -> Result<usize> {
         let mut fs = self.store.lock()?;
         match fs.entry(path_to_string(p)) {
             Entry::Occupied(o) => Ok(o.get().f.0.lock()?.len()),
@@ -202,7 +202,7 @@ impl MemFS {
             ),
         }
     }
-    fn delete_(&self, p: &Path) -> Result<()> {
+    pub fn delete_(&self, p: &Path) -> Result<()> {
         let mut fs = self.store.lock()?;
         match fs.entry(path_to_string(p)) {
             Entry::Occupied(o) => {
@@ -215,7 +215,7 @@ impl MemFS {
             ),
         }
     }
-    fn rename_(&self, from: &Path, to: &Path) -> Result<()> {
+    pub fn rename_(&self, from: &Path, to: &Path) -> Result<()> {
         let mut fs = self.store.lock()?;
         match fs.remove(path_to_str(from)) {
             Some(v) => {
@@ -228,7 +228,7 @@ impl MemFS {
             ),
         }
     }
-    fn lock_(&self, p: &Path) -> Result<FileLock> {
+    pub fn lock_(&self, p: &Path) -> Result<FileLock> {
         let mut fs = self.store.lock()?;
         match fs.entry(path_to_string(p)) {
             Entry::Occupied(mut o) => {
@@ -256,7 +256,7 @@ impl MemFS {
             }
         }
     }
-    fn unlock_(&self, l: FileLock) -> Result<()> {
+    pub fn unlock_(&self, l: FileLock) -> Result<()> {
         let mut fs = self.store.lock()?;
         let id = l.id.clone();
         match fs.entry(l.id) {

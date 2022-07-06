@@ -7,20 +7,20 @@ use std::mem::{replace, swap};
 // No clone, no copy! That asserts that an LRUHandle exists only once.
 type LRUHandle<T> = *mut LRUNode<T>;
 
-struct LRUNode<T> {
+pub struct LRUNode<T> {
     next: Option<Box<LRUNode<T>>>, // None in the list's last node
     prev: Option<*mut LRUNode<T>>,
     data: Option<T>, // if None, then we have reached the head node
 }
 
-struct LRUList<T> {
+pub struct LRUList<T> {
     head: LRUNode<T>,
     count: usize,
 }
 
 /// This is likely unstable; more investigation is needed into correct behavior!
 impl<T> LRUList<T> {
-    fn new() -> LRUList<T> {
+    pub fn new() -> LRUList<T> {
         LRUList {
             head: LRUNode {
                 data: None,
@@ -32,7 +32,7 @@ impl<T> LRUList<T> {
     }
 
     /// Inserts new element at front (least recently used element)
-    fn insert(&mut self, elem: T) -> LRUHandle<T> {
+    pub fn insert(&mut self, elem: T) -> LRUHandle<T> {
         self.count += 1;
         // Not first element
         if self.head.next.is_some() {
@@ -68,7 +68,7 @@ impl<T> LRUList<T> {
         }
     }
 
-    fn remove_last(&mut self) -> Option<T> {
+    pub fn remove_last(&mut self) -> Option<T> {
         if self.head.prev.is_some() {
             let mut lasto = unsafe {
                 replace(
@@ -89,7 +89,7 @@ impl<T> LRUList<T> {
         }
     }
 
-    fn remove(&mut self, node_handle: LRUHandle<T>) -> T {
+    pub fn remove(&mut self, node_handle: LRUHandle<T>) -> T {
         unsafe {
             // If has next
             if let Some(ref mut nextp) = (*node_handle).next {
@@ -110,7 +110,7 @@ impl<T> LRUList<T> {
     }
 
     /// Reinserts the referenced node at the front.
-    fn reinsert_front(&mut self, node_handle: LRUHandle<T>) {
+    pub fn reinsert_front(&mut self, node_handle: LRUHandle<T>) {
         unsafe {
             let prevp = (*node_handle).prev.unwrap();
 
@@ -142,11 +142,11 @@ impl<T> LRUList<T> {
         }
     }
 
-    fn count(&self) -> usize {
+    pub fn count(&self) -> usize {
         self.count
     }
 
-    fn _testing_head_ref(&self) -> Option<&T> {
+    pub fn _testing_head_ref(&self) -> Option<&T> {
         if let Some(ref first) = self.head.next {
             first.data.as_ref()
         } else {
