@@ -44,7 +44,7 @@ impl Footer {
     pub fn new(metaix: BlockHandle, index: BlockHandle) -> Footer {
         Footer {
             meta_index: metaix,
-            index: index,
+            index,
         }
     }
 
@@ -66,6 +66,7 @@ impl Footer {
         let s1 = self.meta_index.encode_to(to);
         let s2 = self.index.encode_to(&mut to[s1..]);
 
+        // padding
         for i in s1 + s2..FOOTER_LENGTH {
             to[i] = 0;
         }
@@ -94,7 +95,7 @@ pub struct TableBuilder<Dst: Write> {
 
     data_block: Option<BlockBuilder>,
     index_block: Option<BlockBuilder>,
-    filter_block: Option<FilterBlockBuilder>,
+    pub filter_block: Option<FilterBlockBuilder>,
 }
 
 impl<Dst: Write> TableBuilder<Dst> {
@@ -120,7 +121,7 @@ impl<Dst: Write> TableBuilder<Dst> {
     pub fn new_raw(opt: Options, dst: Dst) -> TableBuilder<Dst> {
         TableBuilder {
             opt: opt.clone(),
-            dst: dst,
+            dst,
             offset: 0,
             prev_block_last_key: vec![],
             num_entries: 0,
@@ -156,6 +157,7 @@ impl<Dst: Write> TableBuilder<Dst> {
             assert!(self.opt.cmp.cmp(&self.prev_block_last_key, key) == Ordering::Less);
         }
 
+        // if current data block is full, write to disk and create a new data block
         if self.data_block.as_ref().unwrap().size_estimate() > self.opt.block_size {
             self.write_data_block(key)?;
         }

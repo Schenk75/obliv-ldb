@@ -21,7 +21,7 @@ use std::rc::Rc;
 use integer_encoding::FixedIntWriter;
 
 /// Reads the table footer.
-fn read_footer(f: &dyn RandomAccess, size: usize) -> Result<Footer> {
+pub fn read_footer(f: &dyn RandomAccess, size: usize) -> Result<Footer> {
     let mut buf = vec![0; table_builder::FULL_FOOTER_LENGTH];
     f.read_at(size - table_builder::FULL_FOOTER_LENGTH, &mut buf)?;
     Ok(Footer::decode(&buf))
@@ -33,16 +33,16 @@ pub struct Table {
     file_size: usize,
     cache_id: cache::CacheID,
 
-    opt: Options,
+    pub opt: Options,
 
     footer: Footer,
     indexblock: Block,
-    filters: Option<FilterBlockReader>,
+    pub filters: Option<FilterBlockReader>,
 }
 
 impl Table {
     /// Creates a new table reader operating on unformatted keys (i.e., UserKey).
-    fn new_raw(opt: Options, file: Rc<Box<dyn RandomAccess>>, size: usize) -> Result<Table> {
+    pub fn new_raw(opt: Options, file: Rc<Box<dyn RandomAccess>>, size: usize) -> Result<Table> {
         let footer = read_footer(file.as_ref().as_ref(), size)?;
         let indexblock = table_block::read_table_block(
             opt.clone(),
@@ -60,13 +60,13 @@ impl Table {
         let cache_id = opt.block_cache.borrow_mut().new_cache_id();
 
         Ok(Table {
-            file: file,
+            file,
             file_size: size,
-            cache_id: cache_id,
-            opt: opt,
-            footer: footer,
+            cache_id,
+            opt,
+            footer,
             filters: filter_block_reader,
-            indexblock: indexblock,
+            indexblock,
         })
     }
 
@@ -230,7 +230,7 @@ pub struct TableIterator {
     // TableIterators still share a table.
     table: Table,
     current_block: Option<BlockIter>,
-    current_block_off: usize,
+    pub current_block_off: usize,
     index_block: BlockIter,
 }
 

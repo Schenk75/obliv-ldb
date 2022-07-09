@@ -73,7 +73,7 @@ impl BloomPolicy {
     }
 
     /// Returns a new BloomPolicy with the given parameter.
-    fn new_unwrapped(bits_per_key: u32) -> BloomPolicy {
+    pub fn new_unwrapped(bits_per_key: u32) -> BloomPolicy {
         let mut k = (bits_per_key as f32 * 0.69) as u32;
 
         if k < 1 {
@@ -83,12 +83,12 @@ impl BloomPolicy {
         }
 
         BloomPolicy {
-            bits_per_key: bits_per_key,
-            k: k,
+            bits_per_key,
+            k,
         }
     }
 
-    fn bloom_hash(&self, data: &[u8]) -> u32 {
+    pub fn bloom_hash(&self, data: &[u8]) -> u32 {
         let m: u32 = 0xc6a4a793;
         let r: u32 = 24;
 
@@ -222,7 +222,7 @@ impl<FP: FilterPolicy> FilterPolicy for InternalFilterPolicy<FP> {
 
 /// offset_data_iterate iterates over the entries in data that are indexed by the offsets given in
 /// offsets. This is e.g. the internal format of a FilterBlock.
-fn offset_data_iterate<F: FnMut(&[u8])>(data: &[u8], offsets: &[usize], mut f: F) {
+pub fn offset_data_iterate<F: FnMut(&[u8])>(data: &[u8], offsets: &[usize], mut f: F) {
     for offix in 0..offsets.len() {
         let upper = if offix == offsets.len() - 1 {
             data.len()

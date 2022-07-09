@@ -16,10 +16,10 @@ const BRANCHING_FACTOR: u32 = 4;
 
 /// A node in a skipmap contains links to the next node and others that are further away (skips);
 /// `skips[0]` is the immediate element after, that is, the element contained in `next`.
-struct Node {
+pub struct Node {
     skips: Vec<Option<*mut Node>>,
     next: Option<Box<Node>>,
-    key: Vec<u8>,
+    pub key: Vec<u8>,
     value: Vec<u8>,
 }
 
@@ -27,7 +27,7 @@ struct Node {
 /// `contains()`; in order to get full key and value for an entry, use a `SkipMapIter` instance,
 /// `seek()` to the key to look up (this is as fast as any lookup in a skip map), and then call
 /// `current()`.
-struct InnerSkipMap {
+pub struct InnerSkipMap {
     head: Box<Node>,
     rand: StdRng,
     len: usize,
@@ -37,7 +37,7 @@ struct InnerSkipMap {
 }
 
 pub struct SkipMap {
-    map: Rc<RefCell<InnerSkipMap>>,
+    pub map: Rc<RefCell<InnerSkipMap>>,
 }
 
 impl SkipMap {
@@ -62,7 +62,7 @@ impl SkipMap {
                 rand: StdRng::seed_from_u64(0xdeadbeef),
                 len: 0,
                 approx_mem: size_of::<Self>() + MAX_HEIGHT * size_of::<Option<*mut Node>>(),
-                cmp: cmp,
+                cmp,
             })),
         }
     }
@@ -92,7 +92,7 @@ impl SkipMap {
 }
 
 impl InnerSkipMap {
-    fn random_height(&mut self) -> usize {
+    pub fn random_height(&mut self) -> usize {
         let mut height = 1;
 
         while height < MAX_HEIGHT && self.rand.next_u32() % BRANCHING_FACTOR == 0 {
@@ -102,7 +102,7 @@ impl InnerSkipMap {
         height
     }
 
-    fn contains(&self, key: &[u8]) -> bool {
+    pub fn contains(&self, key: &[u8]) -> bool {
         if let Some(n) = self.get_greater_or_equal(key) {
             n.key.starts_with(&key)
         } else {
@@ -112,7 +112,7 @@ impl InnerSkipMap {
 
     /// Returns the node with key or the next greater one
     /// Returns None if the given key lies past the greatest key in the table.
-    fn get_greater_or_equal<'a>(&'a self, key: &[u8]) -> Option<&'a Node> {
+    pub fn get_greater_or_equal<'a>(&'a self, key: &[u8]) -> Option<&'a Node> {
         // Start at the highest skip link of the head node, and work down from there
         let mut current = self.head.as_ref() as *const Node;
         let mut level = self.head.skips.len() - 1;
@@ -155,7 +155,7 @@ impl InnerSkipMap {
 
     /// Finds the node immediately before the node with key.
     /// Returns None if no smaller key was found.
-    fn get_next_smaller<'a>(&'a self, key: &[u8]) -> Option<&'a Node> {
+    pub fn get_next_smaller<'a>(&'a self, key: &[u8]) -> Option<&'a Node> {
         // Start at the highest skip link of the head node, and work down from there
         let mut current = self.head.as_ref() as *const Node;
         let mut level = self.head.skips.len() - 1;
@@ -192,7 +192,7 @@ impl InnerSkipMap {
         }
     }
 
-    fn insert(&mut self, key: Vec<u8>, val: Vec<u8>) {
+    pub fn insert(&mut self, key: Vec<u8>, val: Vec<u8>) {
         assert!(!key.is_empty());
 
         // Keeping track of skip entries that will need to be updated
@@ -241,7 +241,7 @@ impl InnerSkipMap {
         let mut new = Box::new(Node {
             skips: new_skips,
             next: None,
-            key: key,
+            key,
             value: val,
         });
         let newp = new.as_mut() as *mut Node;
@@ -269,7 +269,7 @@ impl InnerSkipMap {
         unsafe { replace(&mut (*current).next, Some(new)) };
     }
     /// Runs through the skipmap and prints everything including addresses
-    fn dbg_print(&self) {
+    pub fn dbg_print(&self) {
         let mut current = self.head.as_ref() as *const Node;
         loop {
             unsafe {

@@ -22,7 +22,7 @@ pub fn table_file_name<P: AsRef<Path>>(name: P, num: FileNum) -> PathBuf {
     name.as_ref().join(format!("{:06}.ldb", num))
 }
 
-fn filenum_to_key(num: FileNum) -> cache::CacheKey {
+pub fn filenum_to_key(num: FileNum) -> cache::CacheKey {
     let mut buf = [0; 16];
     (&mut buf[..]).write_fixedint(num).unwrap();
     buf
@@ -30,7 +30,7 @@ fn filenum_to_key(num: FileNum) -> cache::CacheKey {
 
 pub struct TableCache {
     dbname: PathBuf,
-    cache: Cache<Table>,
+    pub cache: Cache<Table>,
     opts: Options,
 }
 

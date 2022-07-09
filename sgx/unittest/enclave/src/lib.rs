@@ -55,6 +55,10 @@ mod test_cmp;
 mod test_test_util;
 mod test_block;
 mod test_cache;
+mod test_skipmap;
+mod test_memtable;
+mod test_filter;
+mod test_table;
 
 
 #[no_mangle]
@@ -63,43 +67,55 @@ pub extern "C" fn test_something(some_string: *const u8, some_len: usize) -> sgx
     let _ = io::stdout().write(str_slice);
 
     rsgx_unit_tests!(
-        // test_env::test_mem_fs_memfile_read,
-        // test_env::test_mem_fs_memfile_write,
-        // test_env::test_mem_fs_memfile_readat,
-        // test_env::test_mem_fs_open_read_write,
-        // test_env::test_mem_fs_open_read_write_append_truncate,
-        // test_env::test_mem_fs_metadata_operations,
-        // test_env::test_mem_fs_children,
-        // test_env::test_mem_fs_lock,
-        // test_env::test_memenv_all,
-        // test_env::test_files,
-        // test_env::test_locking,
-        // test_env::test_dirs,
+        test_env::test_mem_fs_memfile_read,
+        test_env::test_mem_fs_memfile_write,
+        test_env::test_mem_fs_memfile_readat,
+        test_env::test_mem_fs_open_read_write,
+        test_env::test_mem_fs_open_read_write_append_truncate,
+        test_env::test_mem_fs_metadata_operations,
+        test_env::test_mem_fs_children,
+        test_env::test_mem_fs_lock,
+        test_env::test_memenv_all,
+        test_env::test_files,
+        test_env::test_locking,
+        test_env::test_dirs, 
+    );
 
-        // test_types::test_types_parse_file_name,
+    rsgx_unit_tests!(
+        test_types::test_types_parse_file_name,
+    );
 
-        // test_key_types::test_memtable_lookupkey,
-        // test_key_types::test_build_memtable_key,
+    rsgx_unit_tests!(
+        test_key_types::test_memtable_lookupkey,
+        test_key_types::test_build_memtable_key,
+    );
 
-        // test_cmp::test_cmp_defaultcmp_shortest_sep,
-        // test_cmp::test_cmp_defaultcmp_short_succ,
-        // test_cmp::test_cmp_internalkeycmp_shortest_sep,
-        // test_cmp::test_cmp_internalkeycmp,
-        // // test_cmp::test_cmp_memtablekeycmp_panics,
+    rsgx_unit_tests!(
+        test_cmp::test_cmp_defaultcmp_shortest_sep,
+        test_cmp::test_cmp_defaultcmp_short_succ,
+        test_cmp::test_cmp_internalkeycmp_shortest_sep,
+        test_cmp::test_cmp_internalkeycmp,
+        // test_cmp::test_cmp_memtablekeycmp_panics,
+    );
 
-        // test_test_util::test_test_util_basic,
+    rsgx_unit_tests!(
+        test_test_util::test_test_util_basic,
+    );
 
-        // test_block::test_block_builder_sanity,
-        // test_block::test_block_builder_reset,
-        // // test_block::test_block_builder_panics,
-        // test_block::test_block_iterator_properties,
-        // test_block::test_block_empty,
-        // test_block::test_block_build_iterate,
-        // test_block::test_block_iterate_reverse,
-        // test_block::test_block_seek,
-        // test_block::test_block_seek_to_last,
-        // test_block::test_blockhandle,
+    rsgx_unit_tests!(
+        test_block::test_block_builder_sanity,
+        test_block::test_block_builder_reset,
+        // test_block::test_block_builder_panics,
+        test_block::test_block_iterator_properties,
+        test_block::test_block_empty,
+        test_block::test_block_build_iterate,
+        test_block::test_block_iterate_reverse,
+        test_block::test_block_seek,
+        test_block::test_block_seek_to_last,
+        test_block::test_blockhandle,
+    );
 
+    rsgx_unit_tests!(
         test_cache::test_blockcache_cache_add_rm,
         test_cache::test_blockcache_cache_capacity,
         test_cache::test_blockcache_lru_remove,
@@ -108,5 +124,67 @@ pub extern "C" fn test_something(some_string: *const u8, some_len: usize) -> sgx
         test_cache::test_blockcache_lru_reinsert_2,
         test_cache::test_blockcache_lru_edge_cases,
     );
+
+    rsgx_unit_tests!(
+        test_skipmap::test_insert,
+        // test_skipmap::test_no_dupes,
+        test_skipmap::test_contains,
+        test_skipmap::test_find,
+        test_skipmap::test_empty_skipmap_find_memtable_cmp,
+        test_skipmap::test_skipmap_iterator_0,
+        test_skipmap::test_skipmap_iterator_init,
+        test_skipmap::test_skipmap_iterator,
+        test_skipmap::test_skipmap_iterator_seek_valid,
+        test_skipmap::test_skipmap_behavior,
+        test_skipmap::test_skipmap_iterator_prev,
+        test_skipmap::test_skipmap_iterator_concurrent_insert,
+    );
+
+    rsgx_unit_tests!(
+        test_memtable::test_shift_left,
+        test_memtable::test_memtable_parse_tag,
+        test_memtable::test_memtable_add,
+        test_memtable::test_memtable_add_get,
+        test_memtable::test_memtable_iterator_init,
+        test_memtable::test_memtable_iterator_seek,
+        test_memtable::test_memtable_iterator_fwd,
+        test_memtable::test_memtable_iterator_reverse,
+        test_memtable::test_memtable_parse_key,
+        test_memtable::test_memtable_iterator_behavior,
+    );
+
+    rsgx_unit_tests!(
+        test_filter::test_filter_bloom,
+        test_filter::test_filter_internal_keys_identical,
+        test_filter::test_filter_bloom_hash,
+        test_filter::test_filter_index,
+        test_filter::test_filter_block_builder,
+        test_filter::test_filter_block_build_read,
+    );
+
+    rsgx_unit_tests!(
+        test_table::test_footer,
+        test_table::test_table_builder,
+        // test_table::test_bad_input,
+        test_table::test_table_approximate_offset,
+        test_table::test_table_block_cache_use,
+        test_table::test_table_iterator_fwd_bwd,
+        test_table::test_table_iterator_filter,
+        test_table::test_table_iterator_state_behavior,
+        test_table::test_table_iterator_behavior_standard,
+        test_table::test_table_iterator_values,
+        test_table::test_table_iterator_seek,
+        test_table::test_table_get,
+        test_table::test_table_internal_keys,
+        test_table::test_table_reader_checksum,
+        test_table::test_table_file_name,
+        test_table::test_filenum_to_key,
+        test_table::test_table_cache,
+    );
+
+    rsgx_unit_tests!(
+
+    );
+
     sgx_status_t::SGX_SUCCESS
 }

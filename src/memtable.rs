@@ -14,7 +14,7 @@ use integer_encoding::FixedInt;
 /// Provides Insert/Get/Iterate, based on the SkipMap implementation.
 /// MemTable uses MemtableKeys internally, that is, it stores key and value in the [Skipmap] key.
 pub struct MemTable {
-    map: SkipMap,
+    pub map: SkipMap,
 }
 
 impl MemTable {
@@ -145,7 +145,7 @@ impl LdbIterator for MemtableIterator {
 }
 
 /// shift_left moves s[mid..] to s[0..s.len()-mid]. The new size is s.len()-mid.
-fn shift_left(s: &mut Vec<u8>, mid: usize) {
+pub fn shift_left(s: &mut Vec<u8>, mid: usize) {
     for i in mid..s.len() {
         s.swap(i, i - mid);
     }

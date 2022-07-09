@@ -8,12 +8,12 @@ use std::rc::Rc;
 
 use integer_encoding::FixedInt;
 
-const FILTER_BASE_LOG2: u32 = 11;
-const FILTER_BASE: u32 = 1 << FILTER_BASE_LOG2; // 2 KiB
+pub const FILTER_BASE_LOG2: u32 = 11;
+pub const FILTER_BASE: u32 = 1 << FILTER_BASE_LOG2; // 2 KiB
 
 /// For a given byte offset, returns the index of the filter that includes the key at that offset.
 #[inline]
-fn get_filter_index(offset: usize, base_lg2: u32) -> u32 {
+pub fn get_filter_index(offset: usize, base_lg2: u32) -> u32 {
     // divide by 2048
     (offset >> base_lg2 as usize) as u32
 }
@@ -141,7 +141,7 @@ impl FilterBlockReader {
     }
 
     /// Returns the offset of the offset with index i.
-    fn offset_of(&self, i: u32) -> usize {
+    pub fn offset_of(&self, i: u32) -> usize {
         let offset_offset = self.offsets_offset + 4 * i as usize;
         u32::decode_fixed(&self.block[offset_offset..offset_offset + 4]) as usize
     }
@@ -242,7 +242,7 @@ mod tests {
             for key in get_keys().iter() {
                 assert!(
                     reader.key_may_match(block_offset, key),
-                    format!("{} {:?} ", block_offset, key)
+                    &format!("{} {:?} ", block_offset, key)
                 );
             }
             for key in unknown_keys.iter() {
