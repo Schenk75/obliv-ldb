@@ -60,7 +60,7 @@ pub mod cmp;
 pub mod disk_env;
 pub mod env;
 mod env_common;
-mod error;
+pub mod error;
 pub mod filter;
 pub mod filter_block;
 #[macro_use]

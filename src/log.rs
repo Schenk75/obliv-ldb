@@ -14,8 +14,8 @@ use crc::Hasher32;
 use integer_encoding::FixedInt;
 use integer_encoding::FixedIntWriter;
 
-const BLOCK_SIZE: usize = 32 * 1024;
-const HEADER_SIZE: usize = 4 + 2 + 1;
+pub const BLOCK_SIZE: usize = 32 * 1024;
+pub const HEADER_SIZE: usize = 4 + 2 + 1;
 
 #[derive(Clone, Copy)]
 pub enum RecordType {
@@ -26,10 +26,10 @@ pub enum RecordType {
 }
 
 pub struct LogWriter<W: Write> {
-    dst: W,
+    pub dst: W,
     digest: crc32::Digest,
-    current_block_offset: usize,
-    block_size: usize,
+    pub current_block_offset: usize,
+    pub block_size: usize,
 }
 
 impl<W: Write> LogWriter<W> {
@@ -39,7 +39,7 @@ impl<W: Write> LogWriter<W> {
             dst: writer,
             current_block_offset: 0,
             block_size: BLOCK_SIZE,
-            digest: digest,
+            digest,
         }
     }
 
@@ -123,7 +123,7 @@ pub struct LogReader<R: Read> {
     src: R,
     digest: crc32::Digest,
     blk_off: usize,
-    blocksize: usize,
+    pub blocksize: usize,
     head_scratch: [u8; 7],
     checksums: bool,
 }
@@ -131,7 +131,7 @@ pub struct LogReader<R: Read> {
 impl<R: Read> LogReader<R> {
     pub fn new(src: R, chksum: bool) -> LogReader<R> {
         LogReader {
-            src: src,
+            src,
             blk_off: 0,
             blocksize: BLOCK_SIZE,
             checksums: chksum,

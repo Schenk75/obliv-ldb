@@ -40,6 +40,7 @@ extern crate sgx_tunittest;
 extern crate rand;
 extern crate integer_encoding;
 extern crate rusty_leveldb;
+extern crate crc;
 
 use sgx_tunittest::*;
 use sgx_types::*;
@@ -59,6 +60,9 @@ mod test_skipmap;
 mod test_memtable;
 mod test_filter;
 mod test_table;
+mod test_merging_iter;
+mod test_log;
+mod test_version;
 
 
 #[no_mangle]
@@ -183,7 +187,46 @@ pub extern "C" fn test_something(some_string: *const u8, some_len: usize) -> sgx
     );
 
     rsgx_unit_tests!(
+        test_merging_iter::test_merging_one,
+        test_merging_iter::test_merging_two,
+        test_merging_iter::test_merging_zero,
+        test_merging_iter::test_merging_behavior,
+        test_merging_iter::test_merging_forward_backward,
+        test_merging_iter::test_merging_real,
+        test_merging_iter::test_merging_seek_reset,
+    );
 
+    rsgx_unit_tests!(
+        test_log::test_crc_mask_crc,
+        test_log::test_crc_sanity,
+        test_log::test_writer,
+        test_log::test_writer_append,
+        test_log::test_reader,
+    );
+
+    rsgx_unit_tests!(
+        test_version::test_version_concat_iter,
+        test_version::test_version_concat_iter_properties,
+        test_version::test_version_max_next_level_overlapping,
+        test_version::test_version_all_iters,
+        test_version::test_version_summary,
+        test_version::test_version_get_simple,
+        test_version::test_version_get_overlapping_basic,
+        test_version::test_version_overlap_in_level,
+        test_version::test_version_pick_memtable_output_level,
+        test_version::test_version_overlapping_inputs,
+        test_version::test_version_record_read_sample,
+        test_version::test_version_key_ordering,
+        test_version::test_version_file_overlaps,
+        test_version::test_version_edit_encode_decode,
+        test_version::test_version_set_merge_iters,
+        test_version::test_version_set_total_size,
+        test_version::test_version_set_get_range,
+        test_version::test_version_set_builder,
+        test_version::test_version_set_log_and_apply,
+        test_version::test_version_set_utils,
+        test_version::test_version_set_pick_compaction,
+        test_version::test_version_set_compaction,
     );
 
     sgx_status_t::SGX_SUCCESS

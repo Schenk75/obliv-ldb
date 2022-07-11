@@ -62,7 +62,7 @@ fn read_length_prefixed<R: Read>(reader: &mut R) -> Result<Vec<u8>> {
 
 /// Manages changes to the set of managed SSTables and logfiles.
 pub struct VersionEdit {
-    comparator: Option<String>,
+    pub comparator: Option<String>,
     pub log_number: Option<FileNum>,
     pub prev_log_number: Option<FileNum>,
     pub next_file_number: Option<FileNum>,
@@ -121,7 +121,7 @@ impl VersionEdit {
 
     pub fn set_compact_pointer(&mut self, level: usize, key: InternalKey) {
         self.compaction_ptrs.push(CompactionPointer {
-            level: level,
+            level,
             key: Vec::from(key),
         })
     }
@@ -241,7 +241,7 @@ impl VersionEdit {
 
                             ve.compaction_ptrs.push(CompactionPointer {
                                 level: lvl,
-                                key: key,
+                                key,
                             });
                         } else {
                             return err(StatusCode::IOError, "Couldn't read level");
@@ -269,10 +269,10 @@ impl VersionEdit {
                                     ve.new_files.push((
                                         lvl,
                                         FileMetaData {
-                                            num: num,
-                                            size: size,
-                                            smallest: smallest,
-                                            largest: largest,
+                                            num,
+                                            size,
+                                            smallest,
+                                            largest,
                                             allowed_seeks: 0,
                                         },
                                     ))

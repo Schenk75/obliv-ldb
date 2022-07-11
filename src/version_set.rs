@@ -24,20 +24,20 @@ use std::rc::Rc;
 use std::os::unix::ffi::OsStrExt;
 
 pub struct Compaction {
-    level: usize,
+    pub level: usize,
     max_file_size: usize,
-    input_version: Option<Shared<Version>>,
+    pub input_version: Option<Shared<Version>>,
     level_ixs: [usize; NUM_LEVELS],
     cmp: Rc<Box<dyn Cmp>>,
     icmp: InternalKeyCmp,
 
-    manual: bool,
+    pub manual: bool,
 
     // "parent" inputs from level and level+1.
-    inputs: [Vec<FileMetaHandle>; 2],
+    pub inputs: [Vec<FileMetaHandle>; 2],
     grandparent_ix: usize,
     // remaining inputs from level+2..NUM_LEVELS
-    grandparents: Option<Vec<FileMetaHandle>>,
+    pub grandparents: Option<Vec<FileMetaHandle>>,
     overlapped_bytes: usize,
     seen_key: bool,
     edit: VersionEdit,
@@ -47,7 +47,7 @@ impl Compaction {
     // Note: opt.cmp should be the user-supplied or default comparator (not an InternalKeyCmp).
     pub fn new(opt: &Options, level: usize, input: Option<Shared<Version>>) -> Compaction {
         Compaction {
-            level: level,
+            level,
             max_file_size: opt.max_file_size,
             input_version: input,
             level_ixs: Default::default(),
@@ -172,7 +172,7 @@ impl Compaction {
 pub struct VersionSet {
     dbname: PathBuf,
     opt: Options,
-    cmp: InternalKeyCmp,
+    pub cmp: InternalKeyCmp,
     cache: Shared<TableCache>,
 
     pub next_file_num: u64,
@@ -181,7 +181,7 @@ pub struct VersionSet {
     pub log_num: u64,
     pub prev_log_num: u64,
 
-    current: Option<Shared<Version>>,
+    pub current: Option<Shared<Version>>,
     compaction_ptrs: [Vec<u8>; NUM_LEVELS],
 
     descriptor_log: Option<LogWriter<Box<dyn Write>>>,
@@ -195,8 +195,8 @@ impl VersionSet {
         VersionSet {
             dbname: db.as_ref().to_owned(),
             cmp: InternalKeyCmp(opt.cmp.clone()),
-            opt: opt,
-            cache: cache,
+            opt,
+            cache,
 
             next_file_num: 2,
             manifest_num: 0,
@@ -256,6 +256,7 @@ impl VersionSet {
     }
 
     /// needs_compaction returns true if a compaction makes sense at this point.
+    /// 根据当前 `Version` 的 `compaction_score` 判断需不需要进行compaction
     pub fn needs_compaction(&self) -> bool {
         assert!(self.current.is_some());
         let v = self.current.as_ref().unwrap();
@@ -263,7 +264,7 @@ impl VersionSet {
         v.compaction_score.unwrap_or(0.0) >= 1.0 || v.file_to_compact.is_some()
     }
 
-    fn approximate_offset<'a>(&self, v: &Shared<Version>, key: InternalKey<'a>) -> usize {
+    pub fn approximate_offset<'a>(&self, v: &Shared<Version>, key: InternalKey<'a>) -> usize {
         let mut offset = 0;
         for level in 0..NUM_LEVELS {
             for f in &v.borrow().files[level] {
@@ -284,6 +285,7 @@ impl VersionSet {
         offset
     }
 
+    /// 选定一个compaction，优先考虑Size compaction
     pub fn pick_compaction(&mut self) -> Option<Compaction> {
         assert!(self.current.is_some());
         let current = self.current();
@@ -370,6 +372,7 @@ impl VersionSet {
         Some(c)
     }
 
+    /// 找到上一层Level和选定的Level有重叠的文件，这样就找到了两层需要Compaction的文件
     fn setup_other_inputs(&mut self, compaction: &mut Compaction) {
         assert!(self.current.is_some());
         let current = self.current.as_ref().unwrap();
@@ -455,7 +458,7 @@ impl VersionSet {
     }
 
     /// write_snapshot writes the current version, with all files, to the manifest.
-    fn write_snapshot(&mut self) -> Result<usize> {
+    pub fn write_snapshot(&mut self) -> Result<usize> {
         assert!(self.descriptor_log.is_some());
 
         let mut edit = VersionEdit::new();
@@ -507,6 +510,8 @@ impl VersionSet {
         }
         self.finalize(&mut v);
 
+        // 这里只有Open数据库的时候才会走到，如果需要保存新的MANIFEST，此时这个变量为None
+        // 会创建一个新的MANIFEST，然后将当前的状态写入
         if self.descriptor_log.is_none() {
             let descname = manifest_file_name(&self.dbname, self.manifest_num);
             edit.set_next_file(self.next_file_num);
@@ -531,6 +536,8 @@ impl VersionSet {
         Ok(())
     }
 
+    /// 在版本变更完成时，计算每一Level实际大小相对于最大大小的比率，找到比率最大的Level，用于判断是否需要size compaction
+    /// level0根据文件数量计算，其他level根据文件大小计算
     fn finalize(&self, v: &mut Version) {
         let mut best_lvl = None;
         let mut best_score = None;
@@ -561,7 +568,7 @@ impl VersionSet {
     }
 
     /// recover recovers the state of a LevelDB instance from the files on disk. If recover()
-    /// returns true, the a manifest needs to be written eventually (using log_and_apply()).
+    /// returns true, then a manifest needs to be written eventually (using log_and_apply()).
     pub fn recover(&mut self) -> Result<bool> {
         assert!(self.current.is_some());
 
@@ -663,6 +670,7 @@ impl VersionSet {
     }
 
     /// reuse_manifest checks whether the current manifest can be reused.
+    /// A new manifest needs to be written only if we don't reuse the existing one.
     fn reuse_manifest(
         &mut self,
         current_manifest_path: &Path,
@@ -746,14 +754,14 @@ impl VersionSet {
     }
 }
 
-struct Builder {
+pub struct Builder {
     // (added, deleted) files per level.
-    deleted: [Vec<FileNum>; NUM_LEVELS],
-    added: [Vec<FileMetaHandle>; NUM_LEVELS],
+    pub deleted: [Vec<FileNum>; NUM_LEVELS],
+    pub added: [Vec<FileMetaHandle>; NUM_LEVELS],
 }
 
 impl Builder {
-    fn new() -> Builder {
+    pub fn new() -> Builder {
         Builder {
             deleted: Default::default(),
             added: Default::default(),
@@ -762,13 +770,16 @@ impl Builder {
 
     /// apply applies the edits recorded in edit to the builder state. compaction pointers are
     /// copied to the supplied compaction_ptrs array.
-    fn apply(&mut self, edit: &VersionEdit, compaction_ptrs: &mut [Vec<u8>; NUM_LEVELS]) {
+    pub fn apply(&mut self, edit: &VersionEdit, compaction_ptrs: &mut [Vec<u8>; NUM_LEVELS]) {
+        // 首先更新VersionSet中的compaction_ptrs
         for c in edit.compaction_ptrs.iter() {
             compaction_ptrs[c.level] = c.key.clone();
         }
+        // 把VersionEdit里删除的文件插入到self.deleted相应Level里面去
         for &(level, num) in edit.deleted.iter() {
             self.deleted[level].push(num);
         }
+        // 把VersionEdit里添加的文件插入到self.added相应的Level里去
         for &(level, ref f) in edit.new_files.iter() {
             let mut f = f.clone();
             f.allowed_seeks = f.size / 16384;
@@ -815,18 +826,20 @@ impl Builder {
 
     /// save_to saves the edits applied to the builder to v, adding all non-deleted files from
     /// Version base to v.
-    fn save_to(&mut self, cmp: &InternalKeyCmp, base: &Shared<Version>, v: &mut Version) {
+    pub fn save_to(&mut self, cmp: &InternalKeyCmp, base: &Shared<Version>, v: &mut Version) {
         for level in 0..NUM_LEVELS {
             sort_files_by_smallest(cmp, &mut self.added[level]);
             // The base version should already have sorted files.
             sort_files_by_smallest(cmp, &mut base.borrow_mut().files[level]);
 
+            // 拿出原本Version里的文件，以及Builder里累积的，添加的文件
             let added = self.added[level].clone();
             let basefiles = base.borrow().files[level].clone();
             v.files[level].reserve(basefiles.len() + self.added[level].len());
 
             let iadded = added.into_iter();
             let ibasefiles = basefiles.into_iter();
+            // 按顺序进行合并
             let merged = merge_iters(iadded, ibasefiles, |a, b| {
                 cmp.cmp(&a.borrow().smallest, &b.borrow().smallest)
             });
@@ -909,7 +922,7 @@ fn sort_files_by_smallest<C: Cmp>(cmp: &C, files: &mut Vec<FileMetaHandle>) {
 }
 
 /// merge_iters merges and collects the items from two sorted iterators.
-fn merge_iters<
+pub fn merge_iters<
     Item,
     C: Fn(&Item, &Item) -> Ordering,
     I: Iterator<Item = Item>,
@@ -953,7 +966,7 @@ fn merge_iters<
 
 /// get_range returns the indices of the files within files that have the smallest lower bound
 /// respectively the largest upper bound.
-fn get_range<'a, C: Cmp, I: Iterator<Item = &'a FileMetaHandle>>(
+pub fn get_range<'a, C: Cmp, I: Iterator<Item = &'a FileMetaHandle>>(
     c: &C,
     files: I,
 ) -> (Vec<u8>, Vec<u8>) {

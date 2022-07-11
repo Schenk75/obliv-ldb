@@ -104,7 +104,7 @@ impl Version {
     }
 
     /// get_overlapping returns the files overlapping key in each level.
-    fn get_overlapping<'a>(&self, key: InternalKey<'a>) -> [Vec<FileMetaHandle>; NUM_LEVELS] {
+    pub fn get_overlapping<'a>(&self, key: InternalKey<'a>) -> [Vec<FileMetaHandle>; NUM_LEVELS] {
         let mut levels: [Vec<FileMetaHandle>; NUM_LEVELS] = Default::default();
         let ikey = key;
         let ukey = parse_internal_key(key).2;
@@ -200,6 +200,7 @@ impl Version {
     #[allow(unused_assignments)]
     pub fn record_read_sample<'a>(&mut self, key: InternalKey<'a>) -> bool {
         let levels = self.get_overlapping(key);
+        // count the number of files overlapping the key
         let mut contained_in = 0;
         let mut i = 0;
         let mut first_file = None;
@@ -240,9 +241,9 @@ impl Version {
         false
     }
 
-    /// max_next_level_overlapping_bytes returns how many bytes of tables are overlapped in l+1 by
-    /// tables in l, for the maximum case.
-    fn max_next_level_overlapping_bytes(&self) -> usize {
+    /// max_ne xt_level_overlapping_bytes returns how many bytes of tables are overlapped in l+1 by
+    /// tables inl, for the maximum case.
+    pub fn max_next_level_overlapping_bytes(&self) -> usize {
         let mut max = 0;
         for lvl in 1..NUM_LEVELS - 1 {
             for f in &self.files[lvl] {
@@ -266,7 +267,7 @@ impl Version {
         largest: UserKey<'a>,
     ) -> bool {
         assert!(level < NUM_LEVELS);
-        if level == 0 {
+        if level != 0 {
             some_file_overlaps_range_disjoint(
                 &InternalKeyCmp(self.user_cmp.clone()),
                 &self.files[level],
@@ -325,9 +326,7 @@ impl Version {
                 // Skip files that are not overlapping.
                 if !ubegin.is_empty() && myself.user_cmp.cmp(flargest, &ubegin) == Ordering::Less {
                     continue;
-                } else if !uend.is_empty()
-                    && myself.user_cmp.cmp(fsmallest, &uend) == Ordering::Greater
-                {
+                } else if !uend.is_empty() && myself.user_cmp.cmp(fsmallest, &uend) == Ordering::Greater {
                     continue;
                 } else {
                     inputs.push(f_.clone());
@@ -335,13 +334,9 @@ impl Version {
                     // before ubegin or ends after uend, and expand the range, if so. Then, restart
                     // the search.
                     if level == 0 {
-                        if !ubegin.is_empty()
-                            && myself.user_cmp.cmp(fsmallest, &ubegin) == Ordering::Less
-                        {
+                        if !ubegin.is_empty() && myself.user_cmp.cmp(fsmallest, &ubegin) == Ordering::Less {
                             return (Some((fsmallest.to_vec(), uend)), inputs);
-                        } else if !uend.is_empty()
-                            && myself.user_cmp.cmp(flargest, &uend) == Ordering::Greater
-                        {
+                        } else if !uend.is_empty() && myself.user_cmp.cmp(flargest, &uend) == Ordering::Greater {
                             return (Some((ubegin, flargest.to_vec())), inputs);
                         }
                     }
@@ -353,7 +348,7 @@ impl Version {
 
     /// new_concat_iter returns an iterator that iterates over the files in a level. Note that this
     /// only really makes sense for levels > 0.
-    fn new_concat_iter(&self, level: usize) -> VersionIter {
+    pub fn new_concat_iter(&self, level: usize) -> VersionIter {
         new_version_iter(
             self.files[level].clone(),
             self.table_cache.clone(),
@@ -392,8 +387,8 @@ pub fn new_version_iter(
     ucmp: Rc<Box<dyn Cmp>>,
 ) -> VersionIter {
     VersionIter {
-        files: files,
-        cache: cache,
+        files,
+        cache,
         cmp: InternalKeyCmp(ucmp),
         current: None,
         current_ix: 0,
@@ -504,14 +499,14 @@ pub fn total_size<'a, I: Iterator<Item = &'a FileMetaHandle>>(files: I) -> usize
 }
 
 /// key_is_after_file returns true if the given user key is larger than the largest key in f.
-fn key_is_after_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHandle) -> bool {
+pub fn key_is_after_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHandle) -> bool {
     let f = f.borrow();
     let ulargest = parse_internal_key(&f.largest).2;
     !key.is_empty() && cmp.cmp_inner(key, ulargest) == Ordering::Greater
 }
 
-/// key_is_before_file returns true if the given user key is larger than the largest key in f.
-fn key_is_before_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHandle) -> bool {
+/// key_is_before_file returns true if the given user key is smaller than the smallest key in f.
+pub fn key_is_before_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHandle) -> bool {
     let f = f.borrow();
     let usmallest = parse_internal_key(&f.smallest).2;
     !key.is_empty() && cmp.cmp_inner(key, usmallest) == Ordering::Less
@@ -520,7 +515,7 @@ fn key_is_before_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHa
 /// find_file returns the index of the file in files that potentially contains the internal key
 /// key. files must not overlap and be ordered ascendingly. If no file can contain the key, None is
 /// returned.
-fn find_file<'a>(
+pub fn find_file<'a>(
     cmp: &InternalKeyCmp,
     files: &[FileMetaHandle],
     key: InternalKey<'a>,
@@ -543,7 +538,7 @@ fn find_file<'a>(
 
 /// some_file_overlaps_range_disjoint returns true if any of the given disjoint files (i.e. level >
 /// 1) contain keys in the range defined by the user keys [smallest; largest].
-fn some_file_overlaps_range_disjoint<'a, 'b>(
+pub fn some_file_overlaps_range_disjoint<'a, 'b>(
     cmp: &InternalKeyCmp,
     files: &[FileMetaHandle],
     smallest: UserKey<'a>,
@@ -559,7 +554,7 @@ fn some_file_overlaps_range_disjoint<'a, 'b>(
 
 /// some_file_overlaps_range returns true if any of the given possibly overlapping files contains
 /// keys in the range [smallest; largest].
-fn some_file_overlaps_range<'a, 'b>(
+pub fn some_file_overlaps_range<'a, 'b>(
     cmp: &InternalKeyCmp,
     files: &[FileMetaHandle],
     smallest: UserKey<'a>,
