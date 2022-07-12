@@ -68,7 +68,7 @@ impl LookupKey {
         }
 
         LookupKey {
-            key: key,
+            key,
             key_offset: internal_keylen.required_space(),
         }
     }
@@ -86,6 +86,11 @@ impl LookupKey {
     /// Returns key and tag.
     pub fn internal_key<'a>(&'a self) -> InternalKey<'a> {
         &self.key[self.key_offset..]
+    }
+
+    // for test
+    pub fn get_key(&self) -> Vec<u8> {
+        self.key.clone()
     }
 }
 

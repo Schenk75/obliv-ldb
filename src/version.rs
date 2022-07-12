@@ -200,6 +200,7 @@ impl Version {
     #[allow(unused_assignments)]
     pub fn record_read_sample<'a>(&mut self, key: InternalKey<'a>) -> bool {
         let levels = self.get_overlapping(key);
+        // count the number of files overlapping the key
         let mut contained_in = 0;
         let mut i = 0;
         let mut first_file = None;
@@ -266,7 +267,7 @@ impl Version {
         largest: UserKey<'a>,
     ) -> bool {
         assert!(level < NUM_LEVELS);
-        if level == 0 {
+        if level != 0 {
             some_file_overlaps_range_disjoint(
                 &InternalKeyCmp(self.user_cmp.clone()),
                 &self.files[level],
@@ -325,9 +326,7 @@ impl Version {
                 // Skip files that are not overlapping.
                 if !ubegin.is_empty() && myself.user_cmp.cmp(flargest, &ubegin) == Ordering::Less {
                     continue;
-                } else if !uend.is_empty()
-                    && myself.user_cmp.cmp(fsmallest, &uend) == Ordering::Greater
-                {
+                } else if !uend.is_empty() && myself.user_cmp.cmp(fsmallest, &uend) == Ordering::Greater {
                     continue;
                 } else {
                     inputs.push(f_.clone());
@@ -335,13 +334,9 @@ impl Version {
                     // before ubegin or ends after uend, and expand the range, if so. Then, restart
                     // the search.
                     if level == 0 {
-                        if !ubegin.is_empty()
-                            && myself.user_cmp.cmp(fsmallest, &ubegin) == Ordering::Less
-                        {
+                        if !ubegin.is_empty() && myself.user_cmp.cmp(fsmallest, &ubegin) == Ordering::Less {
                             return (Some((fsmallest.to_vec(), uend)), inputs);
-                        } else if !uend.is_empty()
-                            && myself.user_cmp.cmp(flargest, &uend) == Ordering::Greater
-                        {
+                        } else if !uend.is_empty() && myself.user_cmp.cmp(flargest, &uend) == Ordering::Greater {
                             return (Some((ubegin, flargest.to_vec())), inputs);
                         }
                     }
@@ -392,8 +387,8 @@ pub fn new_version_iter(
     ucmp: Rc<Box<dyn Cmp>>,
 ) -> VersionIter {
     VersionIter {
-        files: files,
-        cache: cache,
+        files,
+        cache,
         cmp: InternalKeyCmp(ucmp),
         current: None,
         current_ix: 0,
@@ -510,7 +505,7 @@ fn key_is_after_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHan
     !key.is_empty() && cmp.cmp_inner(key, ulargest) == Ordering::Greater
 }
 
-/// key_is_before_file returns true if the given user key is larger than the largest key in f.
+/// key_is_before_file returns true if the given user key is smaller than the smallest key in f.
 fn key_is_before_file<'a>(cmp: &InternalKeyCmp, key: UserKey<'a>, f: &FileMetaHandle) -> bool {
     let f = f.borrow();
     let usmallest = parse_internal_key(&f.smallest).2;

@@ -65,9 +65,8 @@ pub struct DB {
     cstats: [CompactionStats; NUM_LEVELS],
 }
 
+// RECOVERY AND INITIALIZATION //
 impl DB {
-    // RECOVERY AND INITIALIZATION //
-
     /// new initializes a new DB object, but doesn't touch disk.
     fn new<P: AsRef<Path>>(name: P, mut opt: Options) -> DB {
         let name = name.as_ref();
@@ -84,7 +83,7 @@ impl DB {
 
         DB {
             name: name.to_owned(),
-            path: path,
+            path,
             lock: None,
             internal_cmp: Rc::new(Box::new(InternalKeyCmp(opt.cmp.clone()))),
             fpol: InternalFilterPolicy::new(opt.filter_policy.clone()),
@@ -92,11 +91,11 @@ impl DB {
             mem: MemTable::new(opt.cmp.clone()),
             imm: None,
 
-            opt: opt,
+            opt,
 
             log: None,
             log_num: None,
-            cache: cache,
+            cache,
             vset: share(vset),
             snaps: SnapshotList::new(),
 
@@ -372,9 +371,8 @@ impl DB {
     }
 }
 
+// WRITE //
 impl DB {
-    // WRITE //
-
     /// Adds a single entry. It's a short, non-synchronous, form of `write()`; in order to make
     /// sure that the written entry is on disk, call `flush()` afterwards.
     pub fn put(&mut self, k: &[u8], v: &[u8]) -> Result<()> {
@@ -418,14 +416,14 @@ impl DB {
     }
 }
 
+// READ //
 impl DB {
-    // READ //
-
     fn get_internal(&mut self, seq: SequenceNumber, key: &[u8]) -> Result<Option<Vec<u8>>> {
         // Using this lookup key will skip all entries with higher sequence numbers, because they
         // will compare "Lesser" using the InternalKeyCmp
         let lkey = LookupKey::new(key, seq);
 
+        // 先从MemTable找
         match self.mem.get(&lkey) {
             (Some(v), _) => return Ok(Some(v)),
             // deleted entry
@@ -434,6 +432,7 @@ impl DB {
             (None, false) => {}
         }
 
+        // 再从不可变MemTable中找
         if let Some(imm) = self.imm.as_ref() {
             match imm.get(&lkey) {
                 (Some(v), _) => return Ok(Some(v)),
@@ -444,6 +443,7 @@ impl DB {
             }
         }
 
+        // 最后到磁盘上的SSTable中找
         let mut do_compaction = false;
         let mut result = None;
 
@@ -484,9 +484,8 @@ impl DB {
     }
 }
 
+// ITERATOR //
 impl DB {
-    // ITERATOR //
-
     /// new_iter returns a DBIterator over the current state of the database. The iterator will not
     /// return elements added to the database after its creation.
     pub fn new_iter(&mut self) -> Result<DBIterator> {
@@ -526,9 +525,8 @@ impl DB {
     }
 }
 
+// SNAPSHOTS //
 impl DB {
-    // SNAPSHOTS //
-
     /// Returns a snapshot at the current state. It can be used to retrieve entries from the
     /// database as they were at an earlier point in time.
     pub fn get_snapshot(&mut self) -> Snapshot {
@@ -536,8 +534,8 @@ impl DB {
     }
 }
 
-impl DB {
-    // STATISTICS //
+// STATISTICS //
+impl DB { 
     fn add_stats(&mut self, level: usize, cs: CompactionStats) {
         assert!(level < NUM_LEVELS);
         self.cstats[level].add(cs);
@@ -554,9 +552,8 @@ impl DB {
     }
 }
 
+// COMPACTIONS //
 impl DB {
-    // COMPACTIONS //
-
     /// make_room_for_write checks if the memtable has become too large, and triggers a compaction
     /// if it's the case.
     fn make_room_for_write(&mut self, force: bool) -> Result<()> {
@@ -608,6 +605,7 @@ impl DB {
     /// Compactions in general will cause the database to find entries more quickly, and take up
     /// less space on disk.
     pub fn compact_range(&mut self, from: &[u8], to: &[u8]) -> Result<()> {
+        // 找到最大的包含key range的level
         let mut max_level = 1;
         {
             let v = self.vset.borrow().current();
@@ -628,6 +626,7 @@ impl DB {
         let iend = LookupKey::new_full(to, 0, ValueType::TypeDeletion);
 
         for l in 0..max_level + 1 {
+            // 每层可能需要进行不止一次compaction
             loop {
                 let c_ = self
                     .vset
@@ -649,6 +648,7 @@ impl DB {
     /// start_compaction dispatches the different kinds of compactions depending on the current
     /// state of the database.
     fn start_compaction(&mut self, mut compaction: Compaction) -> Result<()> {
+        // 只有一个文件需要compaction
         if compaction.is_trivial_move() {
             assert_eq!(1, compaction.num_inputs(0));
             let f = compaction.input(0, 0);
@@ -679,7 +679,7 @@ impl DB {
                 );
                 Ok(())
             }
-        } else {
+        } else {        // 一般情况，有多个文件需要compaction
             let smallest = if self.snaps.empty() {
                 self.vset.borrow().last_seq
             } else {
@@ -701,6 +701,7 @@ impl DB {
         }
     }
 
+    /// 当不可变MemTable不为空时，进行compaction
     fn compact_memtable(&mut self) -> Result<()> {
         assert!(self.imm.is_some());
 
@@ -794,14 +795,20 @@ impl DB {
         let (mut key, mut val) = (vec![], vec![]);
         let mut last_seq_for_key = MAX_SEQUENCE_NUMBER;
 
+        // 记录是否碰到过一个同样的User Key
         let mut have_ukey = false;
+        // 记录当前的User Key
         let mut current_ukey = vec![];
 
         while input.valid() {
             // TODO: Do we need to do a memtable compaction here? Probably not, in the sequential
             // case.
             assert!(input.current(&mut key, &mut val));
+
+            // should_stop_before判断生成的SSTable和level + 2层的有重叠的文件个数，如果超过10个，
+            // 那么这个SSTable生成就完成了,这样保证了新生产的SSTable和上一层不会有过多的重叠
             if cs.compaction.should_stop_before(&key) && cs.builder.is_none() {
+                // 创建一个新的SSTable，写入文件
                 self.finish_compaction_output(cs, key.clone())?;
             }
             let (ktyp, seq, ukey) = parse_internal_key(&key);
@@ -824,13 +831,19 @@ impl DB {
             }
 
             // We can omit the key under the following conditions:
+            // 如果上一个Key的SequenceNumber <= 最小的存活的Snapshot，那么
+            // 这个Key的SequenceNumber一定 < 最小的存活的Snapshot，那么这个Key就可以被丢弃，
+            // 上面碰到了第一个User Key时，设置last_seq_for_key = MAX_SEQUENCE_NUMBER;保证第一个Key一定不会被丢弃
             if last_seq_for_key <= cs.smallest_seq {
                 last_seq_for_key = seq;
                 input.advance();
                 continue;
             }
+
             // Entry is deletion; no older version is observable by any snapshot; and all entries
             // in compacted levels with smaller sequence numbers will
+            // 如果碰到了一个删除操作，并且SequenceNumber <= 最小的Snapshot，
+            // 通过is_base_level_for判断更高Level不会有这个User Key存在，那么这个Key就被丢弃
             if ktyp == ValueType::TypeDeletion
                 && seq <= cs.smallest_seq
                 && cs.compaction.is_base_level_for(ukey)
@@ -858,6 +871,7 @@ impl DB {
             }
             cs.builder.as_mut().unwrap().add(&key, &val)?;
             // NOTE: Adjust max file size based on level.
+            // 达到文件大小，就写入文件，生成新文件
             if cs.builder.as_ref().unwrap().size_estimate() > self.opt.max_file_size {
                 self.finish_compaction_output(cs, key.clone())?;
             }
@@ -997,6 +1011,7 @@ impl CompactionStats {
     }
 }
 
+// 构建一个新的level0的SSTable
 pub fn build_table<I: LdbIterator, P: AsRef<Path>>(
     dbname: P,
     opt: &Options,

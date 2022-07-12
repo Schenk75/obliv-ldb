@@ -47,7 +47,7 @@ impl Compaction {
     // Note: opt.cmp should be the user-supplied or default comparator (not an InternalKeyCmp).
     pub fn new(opt: &Options, level: usize, input: Option<Shared<Version>>) -> Compaction {
         Compaction {
-            level: level,
+            level,
             max_file_size: opt.max_file_size,
             input_version: input,
             level_ixs: Default::default(),
@@ -195,8 +195,8 @@ impl VersionSet {
         VersionSet {
             dbname: db.as_ref().to_owned(),
             cmp: InternalKeyCmp(opt.cmp.clone()),
-            opt: opt,
-            cache: cache,
+            opt,
+            cache,
 
             next_file_num: 2,
             manifest_num: 0,
@@ -256,6 +256,7 @@ impl VersionSet {
     }
 
     /// needs_compaction returns true if a compaction makes sense at this point.
+    /// 根据当前 `Version` 的 `compaction_score` 判断需不需要进行compaction
     pub fn needs_compaction(&self) -> bool {
         assert!(self.current.is_some());
         let v = self.current.as_ref().unwrap();
@@ -284,6 +285,7 @@ impl VersionSet {
         offset
     }
 
+    /// 选定一个compaction，优先考虑Size compaction
     pub fn pick_compaction(&mut self) -> Option<Compaction> {
         assert!(self.current.is_some());
         let current = self.current();
@@ -370,6 +372,7 @@ impl VersionSet {
         Some(c)
     }
 
+    /// 找到上一层Level和选定的Level有重叠的文件，这样就找到了两层需要Compaction的文件
     fn setup_other_inputs(&mut self, compaction: &mut Compaction) {
         assert!(self.current.is_some());
         let current = self.current.as_ref().unwrap();
@@ -507,6 +510,8 @@ impl VersionSet {
         }
         self.finalize(&mut v);
 
+        // 这里只有Open数据库的时候才会走到，如果需要保存新的MANIFEST，此时这个变量为None
+        // 会创建一个新的MANIFEST，然后将当前的状态写入
         if self.descriptor_log.is_none() {
             let descname = manifest_file_name(&self.dbname, self.manifest_num);
             edit.set_next_file(self.next_file_num);
@@ -531,6 +536,8 @@ impl VersionSet {
         Ok(())
     }
 
+    /// 在版本变更完成时，计算每一Level实际大小相对于最大大小的比率，找到比率最大的Level，用于判断是否需要size compaction
+    /// level0根据文件数量计算，其他level根据文件大小计算
     fn finalize(&self, v: &mut Version) {
         let mut best_lvl = None;
         let mut best_score = None;
@@ -561,7 +568,7 @@ impl VersionSet {
     }
 
     /// recover recovers the state of a LevelDB instance from the files on disk. If recover()
-    /// returns true, the a manifest needs to be written eventually (using log_and_apply()).
+    /// returns true, then a manifest needs to be written eventually (using log_and_apply()).
     pub fn recover(&mut self) -> Result<bool> {
         assert!(self.current.is_some());
 
@@ -663,6 +670,7 @@ impl VersionSet {
     }
 
     /// reuse_manifest checks whether the current manifest can be reused.
+    /// A new manifest needs to be written only if we don't reuse the existing one.
     fn reuse_manifest(
         &mut self,
         current_manifest_path: &Path,
@@ -763,12 +771,15 @@ impl Builder {
     /// apply applies the edits recorded in edit to the builder state. compaction pointers are
     /// copied to the supplied compaction_ptrs array.
     fn apply(&mut self, edit: &VersionEdit, compaction_ptrs: &mut [Vec<u8>; NUM_LEVELS]) {
+        // 首先更新VersionSet中的compaction_ptrs
         for c in edit.compaction_ptrs.iter() {
             compaction_ptrs[c.level] = c.key.clone();
         }
+        // 把VersionEdit里删除的文件插入到self.deleted相应Level里面去
         for &(level, num) in edit.deleted.iter() {
             self.deleted[level].push(num);
         }
+        // 把VersionEdit里添加的文件插入到self.added相应的Level里去
         for &(level, ref f) in edit.new_files.iter() {
             let mut f = f.clone();
             f.allowed_seeks = f.size / 16384;
@@ -821,12 +832,14 @@ impl Builder {
             // The base version should already have sorted files.
             sort_files_by_smallest(cmp, &mut base.borrow_mut().files[level]);
 
+            // 拿出原本Version里的文件，以及Builder里累积的，添加的文件
             let added = self.added[level].clone();
             let basefiles = base.borrow().files[level].clone();
             v.files[level].reserve(basefiles.len() + self.added[level].len());
 
             let iadded = added.into_iter();
             let ibasefiles = basefiles.into_iter();
+            // 按顺序进行合并
             let merged = merge_iters(iadded, ibasefiles, |a, b| {
                 cmp.cmp(&a.borrow().smallest, &b.borrow().smallest)
             });

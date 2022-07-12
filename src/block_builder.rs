@@ -28,7 +28,7 @@ impl BlockBuilder {
         BlockBuilder {
             buffer: Vec::with_capacity(o.block_size),
             opt: o,
-            restarts: restarts,
+            restarts,
             last_key: Vec::new(),
             restart_counter: 0,
             counter: 0,
@@ -55,6 +55,7 @@ impl BlockBuilder {
         self.counter = 0;
     }
 
+    // push a key which is Greater than last_key after last_key
     pub fn add(&mut self, key: &[u8], val: &[u8]) {
         assert!(self.restart_counter <= self.opt.block_restart_interval);
         assert!(
@@ -119,6 +120,11 @@ impl BlockBuilder {
 
         // done
         self.buffer
+    }
+
+    // for test
+    pub fn get_restart_counter(&self) -> usize {
+        self.restart_counter
     }
 }
 

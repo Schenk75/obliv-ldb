@@ -83,8 +83,8 @@ impl BloomPolicy {
         }
 
         BloomPolicy {
-            bits_per_key: bits_per_key,
-            k: k,
+            bits_per_key,
+            k,
         }
     }
 
