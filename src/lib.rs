@@ -64,7 +64,7 @@ pub mod error;
 pub mod filter;
 pub mod filter_block;
 #[macro_use]
-mod infolog;
+pub mod infolog;
 pub mod key_types;
 pub mod log;
 pub mod mem_env;

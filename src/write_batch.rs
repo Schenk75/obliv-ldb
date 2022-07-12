@@ -18,7 +18,7 @@ const HEADER_SIZE: usize = 12;
 ///
 /// [tag: 1, keylen: ~var, key: keylen, vallen: ~var, val: vallen]
 pub struct WriteBatch {
-    entries: Vec<u8>,
+    pub entries: Vec<u8>,
 }
 
 impl WriteBatch {
@@ -66,7 +66,7 @@ impl WriteBatch {
         self.entries.clear()
     }
 
-    fn byte_size(&self) -> usize {
+    pub fn byte_size(&self) -> usize {
         self.entries.len()
     }
 

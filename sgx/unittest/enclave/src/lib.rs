@@ -63,6 +63,9 @@ mod test_table;
 mod test_merging_iter;
 mod test_log;
 mod test_version;
+mod test_snapshot;
+mod test_write_batch;
+mod test_db_impl;
 
 
 #[no_mangle]
@@ -227,6 +230,40 @@ pub extern "C" fn test_something(some_string: *const u8, some_len: usize) -> sgx
         test_version::test_version_set_utils,
         test_version::test_version_set_pick_compaction,
         test_version::test_version_set_compaction,
+    );
+
+    rsgx_unit_tests!(
+        test_snapshot::test_snapshot_list,
+    );
+
+    rsgx_unit_tests!(
+        test_write_batch::test_write_batch,
+    );
+
+    rsgx_unit_tests!(
+        test_db_impl::test_db_impl_open_info_log,
+        test_db_impl::test_db_impl_init,
+        test_db_impl::test_db_impl_compact_range,
+        test_db_impl::test_db_impl_compact_range_memtable,
+        test_db_impl::test_db_impl_locking,
+        test_db_impl::test_db_impl_build_table,
+        test_db_impl::test_db_impl_build_db_sanity,
+        test_db_impl::test_db_impl_get_from_table_with_snapshot,
+        test_db_impl::test_db_impl_delete,
+        test_db_impl::test_db_impl_compact_single_file,
+        test_db_impl::test_db_impl_compaction_trivial_move,
+        test_db_impl::test_db_impl_memtable_compaction,
+        test_db_impl::test_db_impl_compaction,
+        test_db_impl::test_db_impl_compaction_trivial,
+        test_db_impl::test_db_impl_compaction_state_cleanup,
+        test_db_impl::test_db_impl_open_close_reopen,
+        test_db_impl::db_iter_basic_test,
+        test_db_impl::db_iter_reset,
+        test_db_impl::db_iter_test_fwd_backwd,
+        test_db_impl::db_iter_test_seek,
+        test_db_impl::db_iter_deleted_entry_not_returned,
+        test_db_impl::db_iter_deleted_entry_not_returned_memtable,
+        test_db_impl::db_iter_repeated_open_close
     );
 
     sgx_status_t::SGX_SUCCESS
