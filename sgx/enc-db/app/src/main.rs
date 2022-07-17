@@ -24,7 +24,7 @@ pub enum Operation {
 }
 
 extern {
-    fn basic_operation(
+    fn enc_operation(
         eid: sgx_enclave_id_t, 
         retval: *mut sgx_status_t,
         operation: u8,
@@ -104,6 +104,14 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
 }
 
 fn main() {
+    let args = Vec::from_iter(args());
+    if args.len() < 2 {
+        panic!(
+            "Usage: {} [get|put/set|delete|iter|compact] [key|from] [val|to]",
+            args[0]
+        );
+    }
+
     let enclave = match init_enclave() {
         Ok(r) => {
             println!("[+] Init Enclave Successful {}!", r.geteid());
@@ -116,14 +124,6 @@ fn main() {
     };
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
-
-    let args = Vec::from_iter(args());
-    if args.len() < 2 {
-        panic!(
-            "Usage: {} [get|put/set|delete|iter|compact] [key|from] [val|to]",
-            args[0]
-        );
-    }
     
     let op: Operation;
     let mut key = String::new();
@@ -131,14 +131,14 @@ fn main() {
 
     match args[1].as_str() {
         "get" => {
-            if args.len() < 3 {
+            if args.len() != 3 {
                 panic!("Usage: {} get <key>", args[0]);
             }
             key = (&args[2]).to_string();
             op = Operation::Get;
         },
         "put" | "set" => {
-            if args.len() < 4 {
+            if args.len() != 4 {
                 panic!("Usage: {} put <key> <val>", args[0]);
             }
             key = (&args[2]).to_string();
@@ -146,7 +146,7 @@ fn main() {
             op = Operation::Put;
         },
         "delete" => {
-            if args.len() < 3 {
+            if args.len() != 3 {
                 panic!("Usage: {} delete <key>", args[0]);
             }
             key = (&args[2]).to_string();
@@ -156,7 +156,7 @@ fn main() {
             op = Operation::Iter;
         },
         "compact" => {
-            if args.len() < 4 {
+            if args.len() != 4 {
                 panic!("Usage: {} compact <from> <to>", args[0]);
             }
             key = (&args[2]).to_string();
@@ -168,7 +168,7 @@ fn main() {
 
 
     let result = unsafe {
-        basic_operation(
+        enc_operation(
             enclave.geteid(),
             &mut retval,
             op as u8,
@@ -186,7 +186,7 @@ fn main() {
         }
     }
 
-    println!("[+] basic_operation success...");
+    println!("[+] enc_operation success...");
 
     enclave.destroy();
 }
