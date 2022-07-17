@@ -1,11 +1,7 @@
 #[cfg(feature = "mesalock_sgx")]
 use std::prelude::v1::*;
 
-#[cfg(feature = "mesalock_sgx")]
-use std::string::String;
-
 use rusty_leveldb::{LdbIterator, DB};
-use protected_fs;
 use std::io::{self, Write};
 use sgx_tcrypto::*;
 use sgx_types::*;
@@ -52,7 +48,7 @@ pub fn encrypt(
     let mut ciphertext_vec: Vec<u8> = vec![0; text_len];
     let mut mac_array: [u8; SGX_AESGCM_MAC_SIZE] = [0; SGX_AESGCM_MAC_SIZE];
     let ciphertext_slice = &mut ciphertext_vec[..];
-    rsgx_rijndael128GCM_encrypt(
+    let _ = rsgx_rijndael128GCM_encrypt(
         key,
         plaintext,
         iv,
@@ -73,7 +69,7 @@ pub fn decrypt(
     let mut mac: [u8; SGX_AESGCM_MAC_SIZE] = [0; SGX_AESGCM_MAC_SIZE];
     mac[..].copy_from_slice(&input[..SGX_AESGCM_MAC_SIZE]);
     let ciphertext = &input[SGX_AESGCM_MAC_SIZE..];
-    rsgx_rijndael128GCM_decrypt(
+    let _ = rsgx_rijndael128GCM_decrypt(
         key,
         &ciphertext,
         iv,

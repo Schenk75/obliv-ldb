@@ -5,13 +5,14 @@ use protected_fs;
 use sgx_tcrypto::SgxEccHandle;
 use sgx_tseal::SgxSealedData;
 use sgx_types::*;
-use std::io::{self, Write, Read};
+use std::io::{Write, Read};
 use std::path::Path;
 use std::untrusted::path::PathEx;
 use rand::Rng;
 
 pub const LOG_SIZE: size_t = 1024;
 
+#[allow(dead_code)]
 pub fn gen_ecc_key_pair(pubkey_path: &str, privkey_path: &str) -> (sgx_ec256_public_t, sgx_ec256_private_t) {
     println!("[+] Generate and Store Ecc Key Pair");
     let pubkey_path = Path::new(pubkey_path);
@@ -37,7 +38,7 @@ pub fn gen_ecc_key_pair(pubkey_path: &str, privkey_path: &str) -> (sgx_ec256_pub
         pub_encoded[..SGX_ECP256_KEY_SIZE].copy_from_slice(&pub_k.gx);
         pub_encoded[SGX_ECP256_KEY_SIZE..].copy_from_slice(&pub_k.gy);
         // println!("[.] pub_encoded: {:?}", pub_encoded);
-        pubkey_file.write(&pub_encoded);
+        let _ = pubkey_file.write(&pub_encoded);
     }
     
     // We only need to seal private key
@@ -46,7 +47,7 @@ pub fn gen_ecc_key_pair(pubkey_path: &str, privkey_path: &str) -> (sgx_ec256_pub
             .write(true)
             .open(privkey_path)
             .unwrap();
-        let mut priv_encoded = prv_k.r;
+        let priv_encoded = prv_k.r;
         // println!("[.] priv_encoded: {:?}", priv_encoded);
         let aad: [u8; 0] = [0_u8; 0];
         let result = SgxSealedData::<[u8]>::seal_data(&aad, &priv_encoded);
@@ -65,13 +66,14 @@ pub fn gen_ecc_key_pair(pubkey_path: &str, privkey_path: &str) -> (sgx_ec256_pub
             println!("[-] Err to_raw_sealed_data_t")
         }
         // println!("[.] sealed_priv: {:?}", sealed_priv_log);
-        privkey_file.write(&sealed_priv_log);
+        let _ = privkey_file.write(&sealed_priv_log);
     }
 
     (pub_k, prv_k)
 }
 
 // Load and unseal private key
+#[allow(dead_code)]
 fn load_priv_key(file_name: &Path) -> sgx_ec256_private_t {
     println!("[+] Load and Unseal Private Key");
     let mut sealed_log: [u8; LOG_SIZE] = [0; LOG_SIZE];
@@ -82,8 +84,8 @@ fn load_priv_key(file_name: &Path) -> sgx_ec256_private_t {
         .unwrap();
     let mut buf = Vec::new(); 
     match privkey_file.read_to_end(&mut buf) {
-        Ok(size) => {
-            // println!("read bytes {}", size);
+        Ok(_size) => {
+            // println!("read bytes {}", _size);
             ()
         },
         Err(_) => panic!("Error read file")
@@ -114,10 +116,12 @@ fn load_priv_key(file_name: &Path) -> sgx_ec256_private_t {
     // println!("[.] Unsealed Private Key from File: {:?}", priv_key_slice);
 
     let mut r: [u8; SGX_ECP256_KEY_SIZE] = [0; SGX_ECP256_KEY_SIZE];
+    r[..].copy_from_slice(priv_key_slice);
     let ecc_priv_key = sgx_ec256_private_t { r };
     ecc_priv_key
 }
 
+#[allow(dead_code)]
 fn load_pub_key(file_name: &Path) -> sgx_ec256_public_t {
     println!("[+] Load Public Key");
     
@@ -127,8 +131,8 @@ fn load_pub_key(file_name: &Path) -> sgx_ec256_public_t {
             .unwrap();
     let mut buf = Vec::new(); 
     match pubkey_file.read_to_end(&mut buf) {
-        Ok(size) => {
-            // println!("read bytes {}", size)
+        Ok(_size) => {
+            // println!("read bytes {}", _size)
             ()
         },
         Err(_) => panic!("Error read file")
@@ -181,7 +185,7 @@ pub fn gen_aes_key(key_path: &str) -> (sgx_aes_gcm_128bit_key_t, [u8; SGX_AESGCM
         println!("[-] Err to_raw_sealed_data_t")
     }
     // println!("[.] sealed_key: {:?}", sealed_key_log);
-    key_file.write(&sealed_key_log);
+    let _ = key_file.write(&sealed_key_log);
 
     (key, iv)
 }
@@ -197,8 +201,8 @@ fn load_aes_key(file_name: &Path) -> (sgx_aes_gcm_128bit_key_t, [u8; SGX_AESGCM_
         .unwrap();
     let mut buf = Vec::new(); 
     match key_file.read_to_end(&mut buf) {
-        Ok(size) => {
-            // println!("read bytes {}", size);
+        Ok(_size) => {
+            // println!("read bytes {}", _size);
             ()
         },
         Err(_) => panic!("Error read file")

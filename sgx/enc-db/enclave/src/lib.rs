@@ -42,14 +42,11 @@ extern crate rand;
 extern crate rusty_leveldb;
 extern crate protected_fs;
 
-use sgx_tcrypto::SgxEccHandle;
 use sgx_types::*;
 
 use std::slice;
-use std::path::{Path, PathBuf};
 use std::vec::Vec;
 use std::string::String;
-use std::untrusted::path::PathEx;
 use rusty_leveldb::{Options, DB};
 
 use user_enc::*;
