@@ -104,6 +104,14 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
 }
 
 fn main() {
+    let args = Vec::from_iter(args());
+    if args.len() < 2 {
+        panic!(
+            "Usage: {} [get|put/set|delete|iter|compact] [key|from] [val|to]",
+            args[0]
+        );
+    }
+
     let enclave = match init_enclave() {
         Ok(r) => {
             println!("[+] Init Enclave Successful {}!", r.geteid());
@@ -117,14 +125,6 @@ fn main() {
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
 
-    let args = Vec::from_iter(args());
-    if args.len() < 2 {
-        panic!(
-            "Usage: {} [get|put/set|delete|iter|compact] [key|from] [val|to]",
-            args[0]
-        );
-    }
-    
     let op: Operation;
     let mut key = String::new();
     let mut val = String::new();
