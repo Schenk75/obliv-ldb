@@ -210,7 +210,7 @@ fn load_aes_key(file_name: &Path) -> (sgx_aes_gcm_128bit_key_t, [u8; SGX_AESGCM_
     let buf = buf.as_slice();
     sealed_log[..].copy_from_slice(buf);
 
-    // Unseal private key
+    // Unseal key
     let opt = unsafe {
         SgxSealedData::<[u8]>::from_raw_sealed_data_t(
             sealed_log.as_ptr() as *mut sgx_sealed_data_t, 

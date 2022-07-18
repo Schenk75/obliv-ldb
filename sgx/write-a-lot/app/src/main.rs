@@ -33,14 +33,14 @@ use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
 use std::io::{Read, Write};
-use std::fs;
-use std::path;
+use std::fs::{self, remove_dir_all};
+use std::path::{self, Path};
 
 static ENCLAVE_FILE: &'static str = "enclave.signed.so";
 static ENCLAVE_TOKEN: &'static str = "enclave.token";
 
 extern {
-    fn say_something(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
+    fn write_a_lot(eid: sgx_enclave_id_t, retval: *mut sgx_status_t,
                      some_string: *const u8, len: usize) -> sgx_status_t;
 }
 
@@ -65,7 +65,7 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
         }
     };
 
-    let token_file: path::PathBuf = home_dir.join(ENCLAVE_TOKEN);;
+    let token_file: path::PathBuf = home_dir.join(ENCLAVE_TOKEN);
     if use_token == true {
         match fs::File::open(&token_file) {
             Err(_) => {
@@ -113,6 +113,11 @@ fn init_enclave() -> SgxResult<SgxEnclave> {
 }
 
 fn main() {
+    // remove db files if exist
+    let dir = Path::new("test1");
+    if dir.is_dir() {
+        remove_dir_all(dir).unwrap();
+    }
 
     let enclave = match init_enclave() {
         Ok(r) => {
@@ -125,12 +130,12 @@ fn main() {
         },
     };
 
-    let input_string = String::from("This is a normal world string passed into Enclave!\n");
+    let input_string = String::from("Start write_a_lot\n");
 
     let mut retval = sgx_status_t::SGX_SUCCESS;
 
     let result = unsafe {
-        say_something(enclave.geteid(),
+        write_a_lot(enclave.geteid(),
                       &mut retval,
                       input_string.as_ptr() as * const u8,
                       input_string.len())
@@ -144,7 +149,7 @@ fn main() {
         }
     }
 
-    println!("[+] say_something success...");
+    println!("[+] write_a_lot success...");
 
     enclave.destroy();
 }

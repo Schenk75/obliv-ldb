@@ -57,5 +57,6 @@ pub fn test_write_a_lot() {
     opt.compression_type = CompressionType::CompressionSnappy;
     let mut db = DB::open("test1", opt).unwrap();
 
+    // fill_db(&mut db, 3276800).unwrap();
     fill_db(&mut db, 3276800).unwrap();
 }
